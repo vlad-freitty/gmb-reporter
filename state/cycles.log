@@ -35,3 +35,4 @@
 2026-08-31T21:08:32+00:00 cycle: 12 calls, 533 fetched, 0 new, 0 changed, 0 sent
 2026-08-31T21:09:30+00:00   telegram error 400: {"ok":false,"error_code":400,"description":"Bad Request: group chat was upgraded to a supergroup chat","parameters":{"migrate_to_chat_id":-1004367815966}}
 2026-08-31T21:09:30+00:00 cycle: 12 calls, 534 fetched, 1 new, 0 changed, 0 sent
+2026-08-31T21:10:33+00:00 cycle: 12 calls, 534 fetched, 0 new, 0 changed, 0 sent

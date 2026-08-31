@@ -340,6 +340,27 @@ def format_review(rev, locmeta, is_update):
     return head + body + meta + link
 
 
+def show_recent(n=15):
+    """Diagnostic: print the N most recently updated reviews straight from the API."""
+    locations = load(LOC_FILE, {}) or refresh_locations()
+    token = get_access_token()
+    reviews, calls = fetch_reviews(token, locations)
+    reviews.sort(key=lambda r: r.get("updateTime", ""), reverse=True)
+
+    print(f"\n{len(reviews)} reviews total, {calls} api calls. "
+          f"{min(n, len(reviews))} most recent by updateTime:\n")
+    for rev in reviews[:n]:
+        stars = STARS.get(rev.get("starRating", ""), 0)
+        label = (locations.get(rev.get("_location"), {}) or {}).get("label", rev.get("_location"))
+        who = ((rev.get("reviewer") or {}).get("displayName") or "?")
+        txt = (rev.get("comment") or "").replace("\n", " ")[:70]
+        seen = load(SEEN_FILE, {})
+        mark = "in-state" if rev.get("name") in seen else "NOT-IN-STATE"
+        print(f"  {rev.get('updateTime','')[:19]}  {stars}*  {label:<22} "
+              f"{who:<18} {mark:<12} {txt}")
+    print()
+
+
 # ---------------------------------------------------------------- main
 
 def cycle(init=False, dry=False):
@@ -414,6 +435,8 @@ if __name__ == "__main__":
         bootstrap_refresh_token()
     elif "--accounts" in args:
         list_accounts()
+    elif "--recent" in args:
+        show_recent()
     elif "--locations" in args:
         refresh_locations()
     else:

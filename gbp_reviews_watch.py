@@ -393,6 +393,7 @@ def cycle(init=False, dry=False):
 
     seen = load(SEEN_FILE, {})          # review_name -> updateTime
     had_state = bool(seen)              # empty state = seed, never flood
+
     new, changed = [], []
     for rev in reviews:
         name = rev.get("name")
@@ -403,10 +404,12 @@ def cycle(init=False, dry=False):
             new.append(rev)
         elif seen[name] != ut:
             changed.append(rev)
-        seen[name] = ut
 
     # --- seeding path: explicit --init, OR state was lost / first ever run ---
     if init or not had_state:
+        for rev in reviews:
+            if rev.get("name"):
+                seen[rev["name"]] = rev.get("updateTime", "")
         save(SEEN_FILE, seen)
         why = "init" if init else "STATE WAS EMPTY - seeded instead of flooding"
         log(f"{why}: {len(seen)} reviews recorded, nothing sent, {calls} api calls")
@@ -419,27 +422,35 @@ def cycle(init=False, dry=False):
     # --- flood guard: never dump more than MAX_SEND at once ---
     queue = [(r, False) for r in new] + [(r, True) for r in changed]
     if len(queue) > MAX_SEND:
-        save(SEEN_FILE, seen) if not dry else None
-        log(f"cycle: {calls} calls, {len(queue)} pending > MAX_SEND={MAX_SEND}, sent summary only")
+        for rev in reviews:
+            if rev.get("name"):
+                seen[rev["name"]] = rev.get("updateTime", "")
         if not dry:
+            save(SEEN_FILE, seen)
             tg_send(f"⚠️ За цикл знайдено {len(new)} нових і {len(changed)} змінених відгуків "
-                    f"— це більше за ліміт {MAX_SEND}, тому окремі повідомлення не шлю.\n"
-                    f"Перевір локації вручну. Наступні відгуки прийдуть як звичайно.")
+                    f"— більше за ліміт {MAX_SEND}, окремі повідомлення не шлю.\n"
+                    f"Перевір локації вручну.")
+        log(f"cycle: {calls} calls, {len(queue)} pending > MAX_SEND={MAX_SEND}, summary only")
         return
 
-    sent = 0
+    # --- normal path: a review is marked seen ONLY after it was delivered ---
+    sent, failed = 0, 0
     for rev, is_upd in queue:
         msg = format_review(rev, locations.get(rev["_location"]), is_upd)
         if dry:
             print("\n---\n" + msg)
-        elif tg_send(msg):
+            continue
+        if tg_send(msg):
+            seen[rev["name"]] = rev.get("updateTime", "")
             sent += 1
-            time.sleep(1.2)          # stay well under Telegram group rate limit
+            time.sleep(1.2)
+        else:
+            failed += 1     # left out of state -> retried next cycle
 
     if not dry:
         save(SEEN_FILE, seen)
     log(f"cycle: {calls} calls, {len(reviews)} fetched, "
-        f"{len(new)} new, {len(changed)} changed, {sent} sent")
+        f"{len(new)} new, {len(changed)} changed, {sent} sent, {failed} failed")
 
 
 if __name__ == "__main__":

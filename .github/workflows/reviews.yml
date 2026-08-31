@@ -44,7 +44,7 @@ jobs:
           git config user.name  "gbp-bot"
           git config user.email "gbp-bot@users.noreply.github.com"
           rm -f state/access_token.json
-                    git add -f state/seen_reviews.json state/locations.json 2>/dev/null || true
+          git add -f state/seen_reviews.json state/locations.json 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "no state changes"
             exit 0

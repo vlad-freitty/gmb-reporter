@@ -241,10 +241,16 @@ def refresh_locations():
                 addr = loc.get("storefrontAddress", {}) or {}
                 city = (addr.get("locality") or "").strip()
                 region = (addr.get("administrativeArea") or "").strip()
+                zipc = (addr.get("postalCode") or "").strip()
+                street = ", ".join([x.strip() for x in (addr.get("addressLines") or []) if x.strip()])
                 label = ", ".join([x for x in (city, region) if x]) or loc.get("title", lid)
+                full = ", ".join([x for x in (street, city, region) if x])
+                if zipc:
+                    full = f"{full} {zipc}".strip()
                 out[lid] = {
                     "title": loc.get("title", lid),
                     "label": label,
+                    "address": full,
                     "placeId": (loc.get("metadata") or {}).get("placeId", ""),
                     "account": aid,
                 }
@@ -311,33 +317,40 @@ def tg_send(text):
 
 
 def format_review(rev, locmeta, is_update):
+    m = locmeta or {}
     stars = STARS.get(rev.get("starRating", ""), 0)
     dot = DOT.get(stars, "⚪")
-    label = (locmeta or {}).get("label", rev.get("_location", "?"))
-    place = (locmeta or {}).get("placeId", "")
 
-    head = f"{dot} <b>{'★' * stars if stars else '—'} · {html.escape(label.upper())}</b>"
+    title = m.get("title", "") or rev.get("_location", "?")
+    city = m.get("label", "")
+    address = m.get("address", "")
+    place = m.get("placeId", "")
+
+    lines = [f"{dot} <b>{'★' * stars if stars else '—'} · {html.escape(title)}</b>"]
     if is_update:
-        head += "  <i>(відгук змінено)</i>"
+        lines[0] += "  <i>(відгук змінено)</i>"
+    if city:
+        lines.append(html.escape(city))
+    if address and address != city:
+        lines.append(html.escape(address))
 
     comment = (rev.get("comment") or "").strip()
-    body = f"\n\n<i>без тексту, тільки оцінка</i>" if not comment \
-        else "\n\n" + html.escape(comment[:900]) + ("…" if len(comment) > 900 else "")
+    if comment:
+        body = html.escape(comment[:900]) + ("…" if len(comment) > 900 else "")
+    else:
+        body = "<i>без тексту, тільки оцінка</i>"
+    lines.append("")
+    lines.append(body)
 
     who = ((rev.get("reviewer") or {}).get("displayName") or "Анонім")
-    when = (rev.get("updateTime") or rev.get("createTime") or "")[:16].replace("T", " ")
-    meta = f"\n\n{html.escape(who)} · {when} UTC"
+    lines.append("")
+    lines.append(html.escape(who))
 
-    if rev.get("reviewReply"):
-        meta += "\n✅ відповідь є"
-    else:
-        meta += "\n⚠️ <b>без відповіді</b>"
-
-    link = ""
     if place:
-        link = f'\n<a href="https://search.google.com/local/reviews?placeid={place}">Відкрити відгуки локації</a>'
+        lines.append(f'<a href="https://search.google.com/local/reviews?placeid={place}">'
+                     f'Відкрити відгуки локації</a>')
 
-    return head + body + meta + link
+    return "\n".join(lines)
 
 
 def show_recent(n=15):

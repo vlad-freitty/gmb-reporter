@@ -28,7 +28,8 @@ import requests
 CLIENT_ID = os.environ.get("GBP_CLIENT_ID", "")
 CLIENT_SECRET = os.environ.get("GBP_CLIENT_SECRET", "")
 REFRESH_TOKEN = os.environ.get("GBP_REFRESH_TOKEN", "")
-ACCOUNT_ID = os.environ.get("GBP_ACCOUNT_ID", "")          # numeric, no "accounts/" prefix
+# One or more account ids, comma-separated. Numeric only, no "accounts/" prefix.
+ACCOUNT_IDS = [a.strip() for a in os.environ.get("GBP_ACCOUNT_ID", "").split(",") if a.strip()]
 
 TG_TOKEN = os.environ.get("TG_BOT_TOKEN", "")
 TG_CHAT = os.environ.get("TG_CHAT_ID", "")
@@ -214,55 +215,64 @@ def list_accounts():
 
 
 def refresh_locations():
-    """Cache locationId -> {title, city, placeId}. Run weekly or after adding a location."""
+    """Cache locationId -> {title, label, placeId, account}. Run weekly / after adding a location."""
     token = get_access_token()
-    out, page = {}, None
-    while True:
-        params = {
-            "readMask": "name,title,storefrontAddress,metadata",
-            "pageSize": 100,
-        }
-        if page:
-            params["pageToken"] = page
-        data = api_get(f"{API_INFO}/accounts/{ACCOUNT_ID}/locations", token, params)
-        for loc in data.get("locations", []):
-            lid = loc["name"].split("/")[-1]
-            addr = loc.get("storefrontAddress", {}) or {}
-            city = addr.get("locality", "")
-            region = addr.get("administrativeArea", "")
-            out[lid] = {
-                "title": loc.get("title", lid),
-                "label": f"{city}, {region}".strip(", ") or loc.get("title", lid),
-                "placeId": (loc.get("metadata") or {}).get("placeId", ""),
-            }
-        page = data.get("nextPageToken")
-        if not page:
-            break
-        time.sleep(REQ_DELAY)
+    out = {}
+    for aid in ACCOUNT_IDS:
+        page, n = None, 0
+        while True:
+            params = {"readMask": "name,title,storefrontAddress,metadata", "pageSize": 100}
+            if page:
+                params["pageToken"] = page
+            data = api_get(f"{API_INFO}/accounts/{aid}/locations", token, params)
+            for loc in data.get("locations", []):
+                lid = loc["name"].split("/")[-1]
+                addr = loc.get("storefrontAddress", {}) or {}
+                city = (addr.get("locality") or "").strip()
+                region = (addr.get("administrativeArea") or "").strip()
+                label = ", ".join([x for x in (city, region) if x]) or loc.get("title", lid)
+                out[lid] = {
+                    "title": loc.get("title", lid),
+                    "label": label,
+                    "placeId": (loc.get("metadata") or {}).get("placeId", ""),
+                    "account": aid,
+                }
+                n += 1
+            page = data.get("nextPageToken")
+            if not page:
+                break
+            time.sleep(REQ_DELAY)
+        log(f"  account {aid}: {n} locations")
     save(LOC_FILE, out)
-    log(f"locations cached: {len(out)}")
+    log(f"locations cached: {len(out)} across {len(ACCOUNT_IDS)} account(s)")
     return out
 
 
-def fetch_reviews(token, location_ids):
-    """batchGetReviews in chunks of 10. Returns list of review dicts."""
+def fetch_reviews(token, locations):
+    """batchGetReviews per account, chunks of 10. Returns (reviews, api_call_count)."""
+    by_account = {}
+    for lid, meta in locations.items():
+        by_account.setdefault(meta.get("account", ""), []).append(lid)
+
     reviews, calls = [], 0
-    for i in range(0, len(location_ids), BATCH_SIZE):
-        chunk = location_ids[i:i + BATCH_SIZE]
-        body = {
-            "locationNames": [f"accounts/{ACCOUNT_ID}/locations/{lid}" for lid in chunk],
-            "pageSize": PAGE_SIZE,
-            "orderBy": "updateTime desc",
-            "ignoreRatingOnlyReviews": False,
-        }
-        data = api_post(f"{API_V4}/accounts/{ACCOUNT_ID}/locations:batchGetReviews",
-                        token, body)
-        calls += 1
-        for block in data.get("locationReviews", []):
-            rev = block.get("review", {})
-            rev["_location"] = block.get("name", "").split("/")[-1]
-            reviews.append(rev)
-        time.sleep(REQ_DELAY)
+    for aid, lids in by_account.items():
+        if not aid:
+            continue
+        for i in range(0, len(lids), BATCH_SIZE):
+            chunk = lids[i:i + BATCH_SIZE]
+            body = {
+                "locationNames": [f"accounts/{aid}/locations/{lid}" for lid in chunk],
+                "pageSize": PAGE_SIZE,
+                "orderBy": "updateTime desc",
+                "ignoreRatingOnlyReviews": False,
+            }
+            data = api_post(f"{API_V4}/accounts/{aid}/locations:batchGetReviews", token, body)
+            calls += 1
+            for block in data.get("locationReviews", []):
+                rev = block.get("review", {})
+                rev["_location"] = block.get("name", "").split("/")[-1]
+                reviews.append(rev)
+            time.sleep(REQ_DELAY)
     return reviews, calls
 
 
@@ -314,7 +324,7 @@ def format_review(rev, locmeta, is_update):
 def cycle(init=False, dry=False):
     missing = [k for k, v in {
         "GBP_CLIENT_ID": CLIENT_ID, "GBP_CLIENT_SECRET": CLIENT_SECRET,
-        "GBP_REFRESH_TOKEN": REFRESH_TOKEN, "GBP_ACCOUNT_ID": ACCOUNT_ID,
+        "GBP_REFRESH_TOKEN": REFRESH_TOKEN, "GBP_ACCOUNT_ID": ",".join(ACCOUNT_IDS),
     }.items() if not v]
     if missing:
         raise SystemExit(f"missing config: {', '.join(missing)}")
@@ -324,7 +334,7 @@ def cycle(init=False, dry=False):
         locations = refresh_locations()
 
     token = get_access_token()
-    reviews, calls = fetch_reviews(token, list(locations.keys()))
+    reviews, calls = fetch_reviews(token, locations)
 
     seen = load(SEEN_FILE, {})          # review_name -> updateTime
     new, changed = [], []

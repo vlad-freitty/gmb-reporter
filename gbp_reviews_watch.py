@@ -46,6 +46,7 @@ API_V4 = "https://mybusiness.googleapis.com/v4"
 BATCH_SIZE = 10          # max locationNames per batchGetReviews call
 PAGE_SIZE = 20           # reviews per location per call; 20 is plenty for a 5-min cycle
 REQ_DELAY = 0.25         # smooth request distribution (Google guidance)
+MAX_SEND = 8             # hard cap on messages per cycle; above this -> one summary line
 HTTP_TIMEOUT = 30
 
 STATE_DIR = pathlib.Path(__file__).resolve().parent / "state"
@@ -337,6 +338,7 @@ def cycle(init=False, dry=False):
     reviews, calls = fetch_reviews(token, locations)
 
     seen = load(SEEN_FILE, {})          # review_name -> updateTime
+    had_state = bool(seen)              # empty state = seed, never flood
     new, changed = [], []
     for rev in reviews:
         name = rev.get("name")
@@ -349,30 +351,36 @@ def cycle(init=False, dry=False):
             changed.append(rev)
         seen[name] = ut
 
-    if init:
+    # --- seeding path: explicit --init, OR state was lost / first ever run ---
+    if init or not had_state:
         save(SEEN_FILE, seen)
-        log(f"init: {len(seen)} reviews recorded, nothing sent, {calls} api calls")
+        why = "init" if init else "STATE WAS EMPTY - seeded instead of flooding"
+        log(f"{why}: {len(seen)} reviews recorded, nothing sent, {calls} api calls")
         if not dry and TG_TOKEN and TG_CHAT:
-            tg_send(f"🤖 Монітор відгуків запущено.\n"
+            tg_send(f"🤖 Базу відгуків синхронізовано.\n"
                     f"{len(locations)} локацій, {len(seen)} відгуків в базі.\n"
                     f"Далі приходитимуть тільки нові.")
         return
 
+    # --- flood guard: never dump more than MAX_SEND at once ---
+    queue = [(r, False) for r in new] + [(r, True) for r in changed]
+    if len(queue) > MAX_SEND:
+        save(SEEN_FILE, seen) if not dry else None
+        log(f"cycle: {calls} calls, {len(queue)} pending > MAX_SEND={MAX_SEND}, sent summary only")
+        if not dry:
+            tg_send(f"⚠️ За цикл знайдено {len(new)} нових і {len(changed)} змінених відгуків "
+                    f"— це більше за ліміт {MAX_SEND}, тому окремі повідомлення не шлю.\n"
+                    f"Перевір локації вручну. Наступні відгуки прийдуть як звичайно.")
+        return
+
     sent = 0
-    for rev in new:
-        msg = format_review(rev, locations.get(rev["_location"]), False)
+    for rev, is_upd in queue:
+        msg = format_review(rev, locations.get(rev["_location"]), is_upd)
         if dry:
             print("\n---\n" + msg)
         elif tg_send(msg):
             sent += 1
-            time.sleep(0.5)
-    for rev in changed:
-        msg = format_review(rev, locations.get(rev["_location"]), True)
-        if dry:
-            print("\n---\n" + msg)
-        elif tg_send(msg):
-            sent += 1
-            time.sleep(0.5)
+            time.sleep(1.2)          # stay well under Telegram group rate limit
 
     if not dry:
         save(SEEN_FILE, seen)

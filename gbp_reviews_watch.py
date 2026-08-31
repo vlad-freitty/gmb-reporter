@@ -326,13 +326,14 @@ def format_review(rev, locmeta, is_update):
     address = m.get("address", "")
     place = m.get("placeId", "")
 
-    lines = [f"{dot} <b>{'★' * stars if stars else '—'} · {html.escape(title)}</b>"]
+    head = f"{dot} <b>{'★' * stars if stars else '—'}</b>"
     if is_update:
-        lines[0] += "  <i>(відгук змінено)</i>"
-    if city:
-        lines.append(html.escape(city))
-    if address and address != city:
+        head += "  <i>(відгук змінено)</i>"
+    lines = [head, f"<b>{html.escape(title)}</b>"]
+    if address:
         lines.append(html.escape(address))
+    elif city:
+        lines.append(html.escape(city))
 
     comment = (rev.get("comment") or "").strip()
     if comment:
@@ -347,8 +348,11 @@ def format_review(rev, locmeta, is_update):
     lines.append(html.escape(who))
 
     if place:
-        lines.append(f'<a href="https://search.google.com/local/reviews?placeid={place}">'
-                     f'Відкрити відгуки локації</a>')
+        lines.append(
+            f'<a href="https://www.google.com/maps/place/?q=place_id:{place}">Локація на картах</a>'
+            f'  ·  '
+            f'<a href="https://search.google.com/local/reviews?placeid={place}">Відгуки</a>'
+        )
 
     return "\n".join(lines)
 

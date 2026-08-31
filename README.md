@@ -34,3 +34,5 @@ Actions -> GBP Reviews Watch -> Run workflow -> вписати mode:
 3. Додати TG secrets
 4. Run workflow -> `--init`
 5. Далі працює саме
+
+Thank you

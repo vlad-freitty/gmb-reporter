@@ -38,12 +38,20 @@ jobs:
           TG_CHAT_ID:        ${{ secrets.TG_CHAT_ID }}
         run: python gbp_reviews_watch.py ${{ github.event.inputs.mode }}
 
+
       - name: Save state
         if: always()
         run: |
           git config user.name  "gbp-bot"
           git config user.email "gbp-bot@users.noreply.github.com"
-          git add state/ 2>/dev/null || true
-          git diff --quiet --cached || git commit -m "state $(date -u +%FT%TZ)"
-          git pull --rebase --autostash || true
-          git push || true
+          git add -A state/
+          echo "--- staged ---"
+          git status --short
+          if git diff --cached --quiet; then
+            echo "no state changes to commit"
+            exit 0
+          fi
+          git commit -m "state $(date -u +%FT%TZ)"
+          git pull --rebase --autostash
+          git push
+          echo "--- pushed ---"

@@ -44,7 +44,8 @@ API_ACCT = "https://mybusinessaccountmanagement.googleapis.com/v1"
 API_V4 = "https://mybusiness.googleapis.com/v4"
 
 BATCH_SIZE = 10          # max locationNames per batchGetReviews call
-PAGE_SIZE = 20           # reviews per location per call; 20 is plenty for a 5-min cycle
+PAGE_SIZE = 50           # max allowed per batchGetReviews call (applies to WHOLE response)
+MAX_PAGES = 20           # safety stop: 20 pages x 50 = 1000 reviews per batch
 REQ_DELAY = 0.25         # smooth request distribution (Google guidance)
 MAX_SEND = 8             # hard cap on messages per cycle; above this -> one summary line
 HTTP_TIMEOUT = 30
@@ -270,19 +271,29 @@ def fetch_reviews(token, locations):
             continue
         for i in range(0, len(lids), BATCH_SIZE):
             chunk = lids[i:i + BATCH_SIZE]
-            body = {
-                "locationNames": [f"accounts/{aid}/locations/{lid}" for lid in chunk],
-                "pageSize": PAGE_SIZE,
-                "orderBy": "updateTime desc",
-                "ignoreRatingOnlyReviews": False,
-            }
-            data = api_post(f"{API_V4}/accounts/{aid}/locations:batchGetReviews", token, body)
-            calls += 1
-            for block in data.get("locationReviews", []):
-                rev = block.get("review", {})
-                rev["_location"] = block.get("name", "").split("/")[-1]
-                reviews.append(rev)
-            time.sleep(REQ_DELAY)
+            token_page, pages = None, 0
+            while True:
+                body = {
+                    "locationNames": [f"accounts/{aid}/locations/{lid}" for lid in chunk],
+                    "pageSize": PAGE_SIZE,
+                    "orderBy": "updateTime desc",
+                    "ignoreRatingOnlyReviews": False,
+                }
+                if token_page:
+                    body["pageToken"] = token_page
+                data = api_post(f"{API_V4}/accounts/{aid}/locations:batchGetReviews",
+                                token, body)
+                calls += 1
+                pages += 1
+                got = data.get("locationReviews", [])
+                for block in got:
+                    rev = block.get("review", {})
+                    rev["_location"] = block.get("name", "").split("/")[-1]
+                    reviews.append(rev)
+                token_page = data.get("nextPageToken")
+                time.sleep(REQ_DELAY)
+                if not token_page or not got or pages >= MAX_PAGES:
+                    break
     return reviews, calls
 
 

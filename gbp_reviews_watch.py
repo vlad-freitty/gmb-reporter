@@ -49,8 +49,11 @@ REQ_DELAY = 0.25         # smooth request distribution (Google guidance)
 MAX_SEND = 8             # hard cap on messages per cycle; above this -> one summary line
 HTTP_TIMEOUT = 30
 
+import tempfile
+
 STATE_DIR = pathlib.Path(__file__).resolve().parent / "state"
-TOKEN_FILE = STATE_DIR / "access_token.json"
+# Access token is a live credential: keep it OUT of state/ so it is never committed.
+TOKEN_FILE = pathlib.Path(tempfile.gettempdir()) / "gbp_access_token.json"
 LOC_FILE = STATE_DIR / "locations.json"
 SEEN_FILE = STATE_DIR / "seen_reviews.json"
 LOG_FILE = STATE_DIR / "cycles.log"
@@ -62,9 +65,15 @@ DOT = {1: "🔴", 2: "🔴", 3: "🟡", 4: "🟢", 5: "🟢"}
 def log(msg):
     line = f"{dt.datetime.now(dt.timezone.utc).isoformat(timespec='seconds')} {msg}"
     print(line, flush=True)
-    STATE_DIR.mkdir(exist_ok=True)
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
     with LOG_FILE.open("a", encoding="utf-8") as f:
         f.write(line + "\n")
+    try:  # keep only the last 500 lines
+        lines = LOG_FILE.read_text(encoding="utf-8").splitlines()
+        if len(lines) > 500:
+            LOG_FILE.write_text("\n".join(lines[-500:]) + "\n", encoding="utf-8")
+    except Exception:
+        pass
 
 
 def load(path, default):
@@ -75,7 +84,7 @@ def load(path, default):
 
 
 def save(path, data):
-    STATE_DIR.mkdir(exist_ok=True)
+    path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(path.suffix + ".tmp")
     tmp.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
     tmp.replace(path)

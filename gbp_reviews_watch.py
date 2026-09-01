@@ -326,7 +326,7 @@ def format_review(rev, locmeta, is_update):
     address = m.get("address", "")
     place = m.get("placeId", "")
 
-    head = f"{dot} <b>{'★' * stars if stars else '—'}</b>"
+    head = f"{dot} <b>{'⭐' * stars if stars else '—'}</b>"
     if is_update:
         head += "  <i>(відгук змінено)</i>"
     lines = [head, f"<b>{html.escape(title)}</b>"]

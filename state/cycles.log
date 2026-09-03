@@ -244,3 +244,7 @@
 2026-09-03T03:40:43+00:00 cycle: 12 calls, 530 fetched, 0 new, 0 changed, 0 sent, 0 failed
 2026-09-03T04:00:49+00:00 cycle: 12 calls, 530 fetched, 0 new, 0 changed, 0 sent, 0 failed
 2026-09-03T04:20:32+00:00 cycle: 12 calls, 530 fetched, 0 new, 0 changed, 0 sent, 0 failed
+2026-09-03T04:40:30+00:00   503 on POST, backoff 1.0s
+2026-09-03T04:40:36+00:00   503 on POST, backoff 2.3s
+2026-09-03T04:40:44+00:00   503 on POST, backoff 1.0s
+2026-09-03T04:40:52+00:00 cycle: 12 calls, 530 fetched, 0 new, 0 changed, 0 sent, 0 failed

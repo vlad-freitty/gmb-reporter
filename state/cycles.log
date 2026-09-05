@@ -452,3 +452,5 @@
 2026-09-05T16:20:34+00:00 cycle: 12 calls, 533 fetched, 0 new, 0 changed, 0 sent, 0 failed
 2026-09-05T16:40:42+00:00 cycle: 12 calls, 533 fetched, 0 new, 0 changed, 0 sent, 0 failed
 2026-09-05T17:00:27+00:00 cycle: 12 calls, 533 fetched, 0 new, 0 changed, 0 sent, 0 failed
+2026-09-05T17:20:30+00:00   503 on POST, backoff 1.0s
+2026-09-05T17:20:33+00:00 cycle: 12 calls, 533 fetched, 0 new, 0 changed, 0 sent, 0 failed

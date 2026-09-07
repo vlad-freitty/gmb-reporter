@@ -1,4 +1,11 @@
 {
+ "15764160139530255682": {
+  "title": "FREITTY Cross-Dock Memphis",
+  "label": "Memphis, TN",
+  "address": "4179 Senator St, Memphis, TN 38118-6919",
+  "placeId": "ChIJu2xWHg2Jf4gRkKw6cRP_viE",
+  "account": "103892325125293989241"
+ },
  "7058245675098208772": {
   "title": "FREITTY Cross-Dock Arlington",
   "label": "Arlington, TX",
@@ -18,6 +25,13 @@
   "label": "Fontana, CA",
   "address": "10777 Commerce Way, Fontana, CA 92337",
   "placeId": "ChIJt6cmpEZLw4AR-ZSnE94m1bc",
+  "account": "103892325125293989241"
+ },
+ "4298543600055339260": {
+  "title": "FREITTY Cross-Dock Dallas",
+  "label": "Dallas, TX",
+  "address": "1602 Terre Colony Ct, Dallas, TX 75212-6221",
+  "placeId": "ChIJ4wQnA8mbToYRXmauyZhk_io",
   "account": "103892325125293989241"
  },
  "744438919849250113": {
@@ -62,6 +76,13 @@
   "placeId": "ChIJK6V2G_DHj4AR_TzSWAq8T9Q",
   "account": "103892325125293989241"
  },
+ "13713470141000804210": {
+  "title": "FREITTY Cross-Dock Portland",
+  "label": "Portland, OR",
+  "address": "110 N Marine Dr, Portland, OR 97217-8030",
+  "placeId": "ChIJcQYVTYqnlVQRBrdVDujrNRI",
+  "account": "103892325125293989241"
+ },
  "1388493550373424317": {
   "title": "FREITTY Cross-Dock Decatur",
   "label": "Decatur, GA",
@@ -90,11 +111,25 @@
   "placeId": "ChIJyeuCLKC1QIYRZHbIq527OkU",
   "account": "103892325125293989241"
  },
+ "14997082747530511135": {
+  "title": "FREITTY Cross-Dock Flowery Branch",
+  "label": "Flowery Branch, GA",
+  "address": "4350 Avery Dr unit b, Flowery Branch, GA 30542-2830",
+  "placeId": "ChIJ4eA4_EPz9YgR1XvWhd6uKrQ",
+  "account": "103892325125293989241"
+ },
  "646225786568580196": {
   "title": "FREITTY Cross-Dock Chicago O'Hare",
   "label": "Wood Dale, IL",
   "address": "840 Dillon Dr unit b, Wood Dale, IL 60191-1269",
   "placeId": "ChIJqWCHtICzD4gR-rR8u33GP5U",
+  "account": "103892325125293989241"
+ },
+ "3574043775779141461": {
+  "title": "FREITTY Cross-Dock Riverside",
+  "label": "Riverside, CA",
+  "address": "5950 Wilderness Ave, Riverside, CA 92504-1014",
+  "placeId": "ChIJc34YM4ax3IARjyRWn1fi2KM",
   "account": "103892325125293989241"
  },
  "5256669324741647146": {

@@ -1,4 +1,3 @@
-2026-10-01T07:40:23+00:00 cycle: 12 calls, 559 fetched, 0 new, 0 changed, 0 sent, 0 failed
 2026-10-01T08:00:53+00:00 cycle: 12 calls, 559 fetched, 0 new, 0 changed, 0 sent, 0 failed
 2026-10-01T08:20:22+00:00   503 on POST, backoff 1.0s
 2026-10-01T08:20:26+00:00 cycle: 12 calls, 559 fetched, 0 new, 0 changed, 0 sent, 0 failed
@@ -498,3 +497,4 @@
 2026-10-07T17:40:25+00:00 cycle: 12 calls, 563 fetched, 0 new, 0 changed, 0 sent, 0 failed
 2026-10-07T18:01:09+00:00 cycle: 12 calls, 563 fetched, 0 new, 0 changed, 0 sent, 0 failed
 2026-10-07T18:20:37+00:00 cycle: 12 calls, 563 fetched, 0 new, 0 changed, 0 sent, 0 failed
+2026-10-07T18:40:46+00:00 cycle: 12 calls, 571 fetched, 8 new, 0 changed, 8 sent, 0 failed
